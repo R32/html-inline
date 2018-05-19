@@ -1,11 +1,9 @@
 html-inline
 -------
 
-1. minify HTML: It will remove all extra spaces and comments(IE conditions comments will be preserved) in the HTML file.
+1. minify HTML: It will remove all extra spaces and comments(IE conditions comments will be preserved).
 
-2. inline script and css.
-
-  > You should minify JS and CSS files by yourself [More details on](src/HLine.hx?ts=4#L39-L59)
+2. inline script and css. You should minify JS and CSS files by yourself [More details on](src/HLine.hx?ts=4#L39-L59)
 
 ## Usage
 
