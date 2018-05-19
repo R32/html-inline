@@ -1,0 +1,6 @@
+-dce full
+-cp src
+-D old-error-format
+-main Main
+-lib csss
+-hl bin/hline.hl
