@@ -43,7 +43,7 @@ class XMLPrint {
 						con_js.push(file);
 						return;
 					}
-				} else if (nodeName == "link" && value.get("type") == "text/css") {
+				} else if (nodeName == "link" && (value.get("rel") == "stylesheet" || value.get("type") == "text/css")) {
 					var file = dir + suffix_min(value.get("href"));
 					if (sys.FileSystem.exists(file)) {
 						con_css.push(file);
@@ -121,20 +121,28 @@ class XMLPrint {
 	}
 
 	function embed_js() {
+		var i = 0;
+		var max = con_js.length;
 		write('<script type="text/javascript">');
-		for (js in con_js) {
-			write(sys.io.File.getContent(js));
-			write("\n");
+		while (i < max) {
+			write(sys.io.File.getContent(con_js[i]));
+			if (i + 1 < max)
+				write("\n");
+			++ i;
 		}
 		write("</script>");
 		con_js.resize(0);
 	}
 
 	function embed_css() {
+		var i = 0;
+		var max = con_css.length;
 		write('<style type="text/css">');
-		for (css in con_css) {
-			write(sys.io.File.getContent(css));
-			write("\n");
+		while (i < max) {
+			write(sys.io.File.getContent(con_css[i]));
+			if (i + 1 < max)
+				write("\n");
+			++ i;
 		}
 		write("</style>");
 		con_css.resize(0);
