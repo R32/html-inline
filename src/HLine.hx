@@ -3,12 +3,16 @@ package;
 class XMLPrint {
 	var output: haxe.io.Output;
 	var dir: String; // end with "/" or == ""
+	var con_css: Array<String>;
+	var con_js: Array<String>;
 
 	function new(dir, out) {
 		this.dir = dir == "" || dir.charCodeAt(dir.length - 1) == "/".code
 			? dir
 			: dir + "/";
 		this.output = out;
+		con_css = [];
+		con_js = [];
 	}
 
 	function writeNode(value: csss.xml.Xml) {
@@ -31,48 +35,45 @@ class XMLPrint {
 				}
 			case Element:
 				var nodeName = value.nodeName.toLowerCase();
-				var embed = false;
 				if (value.exists("no-inline")) {
 					value.remove("no-inline");
 				} else if (nodeName == "script" && value.exists("src")) {
-					var file = dir + add_min(value.get("src")); // out.js => out.min.js
+					var file = dir + suffix_min(value.get("src")); // out.js => out.min.js
 					if (sys.FileSystem.exists(file)) {
-						write('<script type="text/javascript">');
-						write(sys.io.File.getContent(file));
-						write("</script>");
-						embed = true;
+						con_js.push(file);
+						return;
 					}
 				} else if (nodeName == "link" && value.get("type") == "text/css") {
-					var file = dir + add_min(value.get("href"));
+					var file = dir + suffix_min(value.get("href"));
 					if (sys.FileSystem.exists(file)) {
-						write('<style type="text/css">');
-						write(sys.io.File.getContent(file));
-						write("</style>");
-						embed = true;
+						con_css.push(file);
+						return;
 					}
 				}
-				if (!embed) {
-					write("<");
+
+				if (con_css.length > 0) embed_css();
+				if (con_js.length > 0) embed_js();
+
+				write("<");
+				write(nodeName);
+				var a = @:privateAccess value.attributeMap;
+				var i = 0;
+				while (i < a.length) {
+					write(" " + a[i] + "=\"");
+					write(a[i + 1]);
+					write("\"");
+					i += 2;
+				}
+				if (hasChildren(value)) {
+					write(">");
+					for (child in value) {
+						writeNode(child);
+					}
+					write("</");
 					write(nodeName);
-					var a = @:privateAccess value.attributeMap;
-					var i = 0;
-					while (i < a.length) {
-						write(" " + a[i] + "=\"");
-						write(a[i + 1]);
-						write("\"");
-						i += 2;
-					}
-					if (hasChildren(value)) {
-						write(">");
-						for (child in value) {
-							writeNode(child);
-						}
-						write("</");
-						write(nodeName);
-						write(">");
-					} else {
-						write("/>");
-					}
+					write(">");
+				} else {
+					write("/>");
 				}
 			case PCData:
 				var nodeValue:String = value.nodeValue;
@@ -105,7 +106,7 @@ class XMLPrint {
 		return false;
 	}
 
-	function add_min(name: String): String {
+	function suffix_min(name: String): String {
 		if (name.lastIndexOf(".min.") == -1) {
 			var a = name.split(".");
 			var ext = a.pop();
@@ -117,9 +118,32 @@ class XMLPrint {
 		}
 	}
 
+	function embed_js() {
+		write('<script type="text/javascript">');
+		for (js in con_js) {
+			write(sys.io.File.getContent(js));
+			write("\n");
+		}
+		write("</script>");
+		con_js.resize(0);
+	}
+
+	function embed_css() {
+		write('<style type="text/css">');
+		for (css in con_css) {
+			write(sys.io.File.getContent(css));
+			write("\n");
+		}
+		write("</style>");
+		con_css.resize(0);
+	}
+
 	public static function print(xml: csss.xml.Xml, dir, out: haxe.io.Output) {
 		var printer = new XMLPrint(dir, out);
 		printer.writeNode(xml);
+		// for non-stadard HTML file
+		if (printer.con_css.length > 0) printer.embed_css();
+		if (printer.con_js.length > 0) printer.embed_js();
 	}
 }
 
