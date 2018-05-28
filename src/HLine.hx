@@ -51,7 +51,7 @@ class XMLPrint {
 					}
 				}
 
-				if (con_css.length > 0) embed_css();     // before next sibling tag that cannot be embedded
+				if (con_css.length > 0) embed_css();     // before next sibling tag
 				if (con_js.length > 0) embed_js();
 
 				write("<");

@@ -1,4 +1,3 @@
 @echo off
-cd bin
-hl hline.hl
+neko run.n
 pause

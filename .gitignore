@@ -1,2 +1,6 @@
 dump
 bin
+release
+*.zip
+*.exe
+*.n

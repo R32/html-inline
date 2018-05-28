@@ -5,4 +5,5 @@
 -D NO_UPPER
 -main Main
 -lib csss
--neko run.n
+-D HAXE_OUTPUT_FILE=html-inline
+-cpp bin/cpp

@@ -10,16 +10,20 @@ class Main {
 			#end
 		}
 		 print( "Inline all script/css to HTML. ver: 0.1\n"
-		 +"  Usage: hline <file>\n"
+		 +"  Usage: haxelib run inline-html <htmlfile>\n"
 		 );
 	}
 
 	static function main() {
 		var file = null;
 		var out = null;
-		var args = Sys.args().copy();
+		var args = Sys.args();
 		var i = 0;
-		while (i < args.length) {
+		var max = args.length;
+		#if neko
+		if (Sys.getEnv("HAXELIB_RUN") == "1") --max;
+		#end
+		while (i < max) {
 			var value = args[i];
 			switch (value) {
 			case "-h", "--help":
