@@ -2,37 +2,32 @@ package;
 
 class XMLPrint {
 	var output: haxe.io.Output;
-	var pretty: Bool;
 	var dir: String; // end with "/" or == ""
 
-	function new(dir, out, pretty) {
+	function new(dir, out) {
 		this.dir = dir == "" || dir.charCodeAt(dir.length - 1) == "/".code
 			? dir
 			: dir + "/";
 		this.output = out;
-		this.pretty = pretty;
 	}
 
-	function writeNode(value: csss.xml.Xml, tabs:String) {
+	function writeNode(value: csss.xml.Xml) {
 		switch (value.nodeType) {
 			case CData:
-				write(tabs + "<![CDATA[");
+				write("<![CDATA[");
 				write(StringTools.trim(value.nodeValue));
 				write("]]>");
-				newline();
 			case Comment:
 				var commentContent:String = value.nodeValue;
 				if (commentContent.indexOf("[if") != -1) { // IE
 					//commentContent = ~/[\n\r\t]+/g.replace(commentContent, "");
 					commentContent = ~/>\s+</g.replace(commentContent, "><");
 					commentContent = "<!--" + commentContent + "-->";
-					write(tabs);
 					write(commentContent);
-					newline();
 				}
 			case Document:
 				for (child in value) {
-					writeNode(child, tabs);
+					writeNode(child);
 				}
 			case Element:
 				var nodeName = value.nodeName.toLowerCase();
@@ -57,7 +52,7 @@ class XMLPrint {
 					}
 				}
 				if (!embed) {
-					write(tabs + "<");
+					write("<");
 					write(nodeName);
 					var a = @:privateAccess value.attributeMap;
 					var i = 0;
@@ -69,42 +64,30 @@ class XMLPrint {
 					}
 					if (hasChildren(value)) {
 						write(">");
-						newline();
 						for (child in value) {
-							writeNode(child, pretty ? tabs + "\t" : tabs);
+							writeNode(child);
 						}
-						write(tabs + "</");
+						write("</");
 						write(nodeName);
 						write(">");
-						newline();
 					} else {
 						write("/>");
-						newline();
 					}
 				}
 			case PCData:
 				var nodeValue:String = value.nodeValue;
 				if (nodeValue.length != 0) {
-					write(tabs + nodeValue);
-					newline();
+					write(nodeValue);
 				}
 			case ProcessingInstruction:
 				write("<?" + value.nodeValue + "?>");
-				newline();
 			case DocType:
 				write("<!DOCTYPE " + value.nodeValue + ">");
-				newline();
 		}
 	}
 
 	inline function write(input:String) {
 		output.writeString(input);
-	}
-
-	inline function newline() {
-		if (pretty) {
-			output.writeByte("\n".code);
-		}
 	}
 
 	function hasChildren(value: csss.xml.Xml):Bool {
@@ -135,8 +118,8 @@ class XMLPrint {
 	}
 
 	public static function print(xml: csss.xml.Xml, dir, out: haxe.io.Output) {
-		var printer = new XMLPrint(dir, out, false);
-		printer.writeNode(xml, "");
+		var printer = new XMLPrint(dir, out);
+		printer.writeNode(xml);
 	}
 }
 
