@@ -1,6 +1,7 @@
 -dce full
 -cp src
 -D old-error-format
+-D NO_UPPER
 -main Main
 -lib csss
 -hl bin/hline.hl

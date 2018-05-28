@@ -34,7 +34,7 @@ class XMLPrint {
 					writeNode(child);
 				}
 			case Element:
-				var nodeName = value.nodeName.toLowerCase();
+				var nodeName = value.nodeName;
 				if (value.exists("no-inline")) {
 					value.remove("no-inline");
 				} else if (nodeName == "script" && value.exists("src")) {
