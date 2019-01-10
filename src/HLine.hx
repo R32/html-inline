@@ -37,20 +37,27 @@ class XMLPrint {
 				var nodeName = value.nodeName;
 				if (value.exists("no-inline")) {
 					value.remove("no-inline");
+				} else if ( value.exists("exclude") ) {
+					return;
 				} else if (nodeName == "script" && value.exists("src")) {
-					var file = dir + suffix_min(value.get("src")); // out.js => out.min.js
-					if (sys.FileSystem.exists(file)) {
-						con_js.push(file);
-						return;
+					var src = value.get("src");
+					if ( !StringTools.startsWith(src, "http") ) {
+						var file = dir + suffix_min( src ); // out.js => out.min.js
+						if ( sys.FileSystem.exists(file) ) {
+							con_js.push(file);
+							return;
+						}
 					}
-				} else if (nodeName == "link" && (value.get("rel") == "stylesheet" || value.get("type") == "text/css")) {
-					var file = dir + suffix_min(value.get("href"));
-					if (sys.FileSystem.exists(file)) {
-						con_css.push(file);
-						return;
+				} else if (nodeName == "link" && value.exists("href") && (value.get("rel") == "stylesheet" || value.get("type") == "text/css")) {
+					var href = value.get("href");
+					if ( !StringTools.startsWith(href, "http") ) {
+						var file = dir + suffix_min( href );
+						if (sys.FileSystem.exists(file)) {
+							con_css.push(file);
+							return;
+						}
 					}
 				}
-
 				if (con_css.length > 0) embed_css();     // before next sibling tag
 				if (con_js.length > 0) embed_js();
 

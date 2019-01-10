@@ -10,7 +10,7 @@ class Main {
 			#end
 		}
 		 print( "Inline all script/css to HTML. ver: 0.1\n"
-		 +"  Usage: haxelib run inline-html <htmlfile>\n"
+		 +"  Usage: haxelib run html-inline <htmlfile>\n"
 		 );
 	}
 
