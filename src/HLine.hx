@@ -262,11 +262,11 @@ class HLine {
 			proc.stdin.writeString(text, UTF8);
 			proc.stdin.close();
 		}
-		if (proc.exitCode() != 0) {
-			var msg = proc.stderr.readAll().toString();
-			proc.close();
-			throw msg;
-		}
+		//if (proc.exitCode() != 0) {  // no idea why it will always get stuck.
+			//var msg = proc.stderr.readAll().toString();
+			//proc.close();
+			//throw msg;
+		//}
 		var ret = proc.stdout.readAll();
 		proc.close();
 		return ret;
@@ -289,11 +289,11 @@ class HLine {
 		args.push(dst);
 		args.push(src);
 		var proc = new sys.io.Process("java", args);
-		if (proc.exitCode() != 0) {
-			var msg = proc.stderr.readAll().toString();
-			proc.close();
-			throw msg;
-		}
+		//if (proc.exitCode() != 0) {
+			//var msg = proc.stderr.readAll().toString();
+			//proc.close();
+			//throw msg;
+		//}
 		proc.close();
 	}
 }
