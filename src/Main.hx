@@ -21,7 +21,10 @@ class Main {
 		var i = 0;
 		var max = args.length;
 		#if neko
-		if (Sys.getEnv("HAXELIB_RUN") == "1") --max;
+		if (Sys.getEnv("HAXELIB_RUN") == "1") {
+			--max;
+			Sys.setCwd(args[max]);
+		}
 		#end
 		while (i < max) {
 			var value = args[i];
