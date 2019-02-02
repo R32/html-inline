@@ -3,41 +3,20 @@ html-inline
 
 * minify HTML: It will remove all extra spaces and comments(IE conditions comments will be preserved).
 
-* inline script and css. You should minify JS and CSS files by yourself [More details on](src/HLine.hx?ts=4#L38-L52)
-  > if `href="style.css"` then the `"style.min.css"` will be loaded from the same directory as the disk.
-  >
-  > if `href="style.min.css"` then still use `"style.min.css"`.
+* minify scripts and css by [YUI Compressor](https://github.com/yui/yuicompressor)
 
-example input file:
 
-```html
-<html>
-  <head>
-    <link rel="stylesheet" href="normal.css" /> <!-- div{padding:0;} -->
-    <link rel="stylesheet" href="base.css" />   <!-- .base{margin:0;} -->
-    <title>test</title>
-  </head>
-  <body>
-    <script src="hi.js"></script>               <!-- console.log("hello world!"); -->
-  </body>
-</html>
-```
-
-output: As you can see that the continuous, embeddable `js/css` will be combined into one tag.
-
-```html
-<html><head><style type="text/css">div{padding:0;}
-.base{margin:0;}</style><title>test</title></head><body><script type="text/javascript">console.log("hello world!");</script></body></html>
-```
-
-## Installation
+### Installation
 
 Available on haxelib, simply run the following command:
 
 ```bash
 haxelib install html-inline
 ```
+
 ### Usage
+
+command line:
 
 ```bash
 # The default will be output to stdout
@@ -47,7 +26,40 @@ haxelib run html-inline index.html
 haxelib run html-inline index.html > out.html
 ```
 
-## Other tools
+html file:
 
-* [Google Closure](https://github.com/google/closure-compiler) JavaScript minification tool
-* [YUI Compressor](https://github.com/yui/yuicompressor) minify your JavaScript and CSS files.
+```html
+<!-- DEFAULT: all scripts and styles will be mifinied by yuicompressor and inline to HTML -->
+<link rel="stylesheet" href="style.css" />
+
+<!-- ATTR: hi-skip: if set then no inline and no minify -->
+<link rel="stylesheet" href="style.css" hi-skip="" />
+
+<!-- ATTR: hi-cut:  if set then this element will be removed from HTML -->
+<link rel="stylesheet" href="style.css" hi-cut="" />
+
+<!-- ATTR: hi-mini: if set then minify(style.css) => style.min.css and update href -->
+<link rel="stylesheet" href="style.css" hi-mini="" />
+```
+
+example:
+
+```html
+<html>
+  <head>
+    <link rel="stylesheet" href="normal.css" />
+    <link rel="stylesheet" href="base.css" />
+    <title>test</title>
+  </head>
+  <body>
+    <script src="hi.js"></script>
+  </body>
+</html>
+```
+
+output:.
+
+```html
+<html><head><style type="text/css">div{padding:0;}
+.base{margin:0;}</style><title>test</title></head><body><script type="text/javascript">console.log("hello world!");</script></body></html>
+```

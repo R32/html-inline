@@ -4,8 +4,8 @@
   "license": "MIT",
   "tags": ["html", "utility"],
   "description": "minify HTML and inline JS and CSS",
-  "releasenote": "",
-  "version": "0.1.0",
+  "releasenote": "Added YUICompressor.jar",
+  "version": "0.2.0",
   "dependencies" : {
     "csss" : ""
   },
