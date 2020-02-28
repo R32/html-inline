@@ -1,243 +1,253 @@
 package;
 
+ using StringTools;
+import csss.xml.Xml;
+
 enum abstract MiniType(String) to String {
 	var None = "";
 	var CSS  = "css";
 	var JS   = "js";
 }
 
+@:access(csss.xml.Xml)
 class XMLPrint {
-	var output: haxe.io.Output;
-	var dir: String; // end with "/" or == ""
-	var con_css: Array<String>;
-	var con_js: Array<String>;
+
+	var output : haxe.io.Output;
+
+	var dir : String; // end with "/" or ""
+
+	var connCSS : Array<String>;
+
+	var connJS  : Array<String>;
 
 	function new(dir, out) {
-		this.dir = dir == "" || dir.charCodeAt(dir.length - 1) == "/".code
-			? dir
-			: dir + "/";
+		connJS = [];
+		connCSS = [];
 		this.output = out;
-		con_css = [];
-		con_js = [];
+		if (dir == "" || dir.fastCodeAt(dir.length - 1) == "/".code)
+			this.dir = dir;
+		else
+			this.dir = dir + "/";
 	}
 
-	// the minify only for CData or PCData
-	function writeNode(value: csss.xml.Xml, mini:MiniType = None) {
-		switch (value.nodeType) {
-			case CData:
-				var nodeValue = value.nodeValue;
-				if (nodeValue.length != 0) {
-					write("<![CDATA[");
-					if (mini == None) {
-						write(StringTools.trim(nodeValue));
-					} else {
-						var bytes = HLine.minifyString(nodeValue, mini);
-						output.writeBytes(bytes, 0, bytes.length);
-					}
-					write("]]>");
-				}
-			case Comment:
-				var commentContent:String = value.nodeValue;
-				if (commentContent.indexOf("[if") != -1) { // IE
-					//commentContent = ~/[\n\r\t]+/g.replace(commentContent, "");
-					commentContent = ~/>\s+</g.replace(commentContent, "><");
-					commentContent = "<!--" + commentContent + "-->";
-					write(commentContent);
-				}
-			case Document:
-				for (child in value) {
-					writeNode(child);
-				}
-			case Element:
-				mini = None;                            // reset
-				var nodeName = value.nodeName;
-				if (value.exists("hi-skip")) {          // skip minify
-					value.remove("hi-skip");
-				} else if ( value.exists("hi-cut") ) {  // exclude
-					return;
-				} else if (nodeName == "script") {
-					var src = value.get("src");
-					var full = dir + src;
-					if (src == null) {
-						var tnode = value.firstChild();
-						if (@:privateAccess value.children.length == 1 && (tnode.nodeType == PCData || tnode.nodeType == CData)) {
-							if (StringTools.ltrim(tnode.nodeValue) == "")
-								return;                // exclude if empty
-							mini = JS;
-						} else {
-							throw tnode;
-						}
-					} else if ( !StringTools.startsWith(src, "http") && sys.FileSystem.exists(full) && !sys.FileSystem.isDirectory(full) ) {
-						if ( value.exists("hi-mini") ) {
-							value.remove("hi-mini");
-							var srcmin = suffix_min(src);
-							if (srcmin != src) {
-								HLine.minifyDisk(dir + srcmin, full, JS);
-								value.set("src", srcmin, value.attrPos("src"));
-							}
-						} else {
-							con_js.push(full);
-							return;
-						}
-					}
-				} else if (nodeName == "link" && value.exists("href") && (value.get("rel") == "stylesheet" || value.get("type") == "text/css")) {
-					var href = value.get("href");
-					var full = dir + href;
-					if ( !StringTools.startsWith(href, "http") && sys.FileSystem.exists(full) && !sys.FileSystem.isDirectory(full) ) {
-						if ( value.exists("hi-mini") ) {
-							value.remove("hi-mini");
-							var hrefmin = suffix_min(href);
-							if (hrefmin != href) {
-								HLine.minifyDisk(dir + hrefmin, full, CSS);
-								value.set("href", hrefmin, value.attrPos("href"));
-							}
-						} else {
-							con_css.push(full);
-							return;
-						}
-					}
-				} else if (nodeName == "style") {
-					var tnode = value.firstChild();
-					if (@:privateAccess value.children.length == 1 && (tnode.nodeType == PCData || tnode.nodeType == CData)) {
-						if (StringTools.ltrim(tnode.nodeValue) == "")
-							return;                      // exclude if empty
-						mini = CSS;
-					} else {
-						throw tnode;
-					}
-				}
-				if (con_css.length > 0) embed_css();     // before next sibling tag
-				if (con_js.length > 0) embed_js();
+	static inline var HI_SKIP = "hi-skip";
+	static inline var HI_MINI = "hi-mini";
+	static inline var HI_CUT =  "hi-cut";
 
-				write("<");
-				write(nodeName);
-				var a = @:privateAccess value.attributeMap;
-				var i = 0;
-				while (i < a.length) {
-					write(" " + a[i] + "=\"");
-					write(a[i + 1]);
-					write("\"");
-					i += 2;
-				}
-				if (hasChildren(value)) {
-					write(">");
-					for (child in value) {
-						writeNode(child, mini);
-					}
-					if (con_css.length > 0) embed_css(); // before parent tag closes.
-					if (con_js.length > 0) embed_js();
-					write("</");
-					write(nodeName);
-					write(">");
-				} else {
-					write("/>");
-				}
-			case PCData:
-				var nodeValue:String = value.nodeValue;
-				if (nodeValue.length != 0) {
-					if (mini == None) {
-						write(nodeValue);
-					} else {
-						var bytes = HLine.minifyString(nodeValue, mini);
-						output.writeBytes(bytes, 0, bytes.length);
-					}
-				}
-			case ProcessingInstruction:
-				write("<?" + value.nodeValue + "?>");
-			case DocType:
-				write("<!DOCTYPE " + value.nodeValue + ">");
-		}
-	}
+	static var regexp_comment_trim = ~/>\s+</g;
+	static var regexp_mini_tags = ~/^(?:script|style|link)$/;
 
-	inline function write(input:String) {
-		output.writeString(input);
-	}
-
-	function hasChildren(value: csss.xml.Xml):Bool {
-		for (child in value) {
-			switch (child.nodeType) {
-				case Element, PCData:
-					return true;
-				case CData, Comment:
-					if (StringTools.ltrim(child.nodeValue).length != 0) {
-						return true;
-					}
-				case _:
+	function writeNode( node : Xml, mini : MiniType = None ) {
+		inline function setAttribute(k, v) node.set(k, v, 0, 0); // stupid xml.set
+		var nodeName = node.nodeName;
+		var textContent = node.nodeValue; // only for TextNode
+		switch (node.nodeType) {
+		case CData if (textContent.length > 0):
+			write("<![CDATA[");
+			if (mini == None) {
+				write(textContent.trim());
+			} else {
+				writeBytes( Minify.string(textContent, mini) );
 			}
+			write("]]>");
+		case Comment if (textContent.indexOf("[if") != -1): // IE
+			textContent = regexp_comment_trim.replace(textContent, "><");
+			write("<!--" + textContent + "-->");
+		case Document:
+			for (child in node)
+				writeNode(child);
+		case Element:
+			if (node.exists(HI_CUT))
+				return;
+			mini = None;
+			if (node.exists(HI_SKIP)) {
+				node.remove(HI_SKIP);
+			} else if (regexp_mini_tags.match(nodeName.toLowerCase())) {
+				var rpos = regexp_mini_tags.matchedPos();
+				switch(rpos.len) {
+				case 4 if (node.exists("href") && (node.get("rel") == "stylesheet" || node.get("type") == "text/css")):
+					var href = node.get("href");
+					var path = dir + href;
+					if ( exists(path) ) {
+						if ( node.exists(HI_MINI) ) {
+							node.remove(HI_MINI);
+							var s_min = addMiniSuffix(href);
+							if (s_min != href) {
+								Minify.write(dir + s_min, path, CSS);
+								setAttribute("href", s_min);
+							}
+						} else {
+							connCSS.push(path);
+							return;
+						}
+					}
+				case 5: // "style".length
+					assertIfNotText(node);
+					if (innerText(node).trim() == "")
+						return;
+					mini = CSS;
+				case 6: // "script".length
+					var src = node.get("src");
+					var path = dir + src;
+					if (src == null) {
+						assertIfNotText(node);
+						if (innerText(node).trim() == "")
+							return;
+						mini = JS;
+					} else if (exists(path)) {
+						if ( node.exists(HI_MINI) ) {
+							node.remove(HI_MINI);
+							var s_min = addMiniSuffix(src);
+							if (s_min != src) {
+								Minify.write(dir + s_min, path, JS);
+								setAttribute("src", s_min);
+							}
+						} else {
+							connJS.push(path);
+							return;
+						}
+					}
+				default:
+				}
+			}
+			connFlush(); // before next sibling tag
+
+			write("<" + nodeName);
+			var i = 0;
+			var a = node.attributeMap;
+			while (i < a.length) {
+				write(' ${a[i]}="${a[i + 1]}"');
+				i += 2;
+			}
+			if ( hasChildren(node) ) {
+				write(">");
+				for (child in node)
+					writeNode(child, mini);
+				connFlush(); // before parent tag closes.
+				write("</");
+				write(nodeName);
+			}
+			write("/>");
+		case PCData if (textContent.length > 0):
+			if (mini == None) {
+				write(textContent);
+			} else {
+				writeBytes( Minify.string(textContent, mini) );
+			}
+		case ProcessingInstruction:
+			write("<?" + node.nodeValue + "?>");
+		case DocType:
+			write("<!DOCTYPE " + node.nodeValue + ">");
+		default:
 		}
-		return false;
 	}
 
-	function suffix_min(name: String): String {
-		if (name.lastIndexOf(".min.") == -1) {
-			var a = name.split(".");
-			var ext = a.pop();
-			a.push("min");
-			a.push(ext);
-			return a.join(".");
-		} else {
+	inline function write( input : String ) output.writeString(input);
+
+	inline function writeBytes( bytes : haxe.io.Bytes ) output.writeBytes(bytes, 0, bytes.length);
+
+	inline function innerText( node : Xml ) return node.children[0].nodeValue;
+
+	inline function hasChildren( node : Xml ) return node.children.length > 0;
+
+	inline function exists( file : String ) return !file.startsWith("http") && sys.FileSystem.exists(file) && !sys.FileSystem.isDirectory(file);
+
+	function assertIfNotText( node : Xml ) {
+		if (!(node.children.length == 1 && (node.children[0].nodeType == PCData || node.children[0].nodeType == CData)))
+			throw node;
+	}
+
+	function addMiniSuffix( name : String ) {
+		if (name.lastIndexOf(".min.") > 0)
 			return name;
-		}
+		var a = name.split(".");
+		var ext = a.pop();
+		a.push("min");
+		a.push(ext);
+		return a.join(".");
 	}
 
-	function embed_js() {
-		var i = 0;
-		var max = con_js.length;
-		write('<script type="text/javascript">');
-		while (i < max) {
-			var file = con_js[i];
-			var fileMin = suffix_min(file);
-			var bytes = file == fileMin ? sys.io.File.getBytes(file) : HLine.minifyFile(file, JS);
-			output.writeBytes(bytes, 0, bytes.length);
-			if (i + 1 < max)
-				write("\n");
-			++ i;
+	function embedFiles( conn : Array<String> ) {
+		if (conn.length == 0)
+			return;
+		var type  = conn == connJS ? JS : CSS;
+		var start = conn == connJS ? '<script type="text/javascript">' : '<style type="text/css">';
+		var end   = conn == connJS ? "</script>"                       : "</style>";
+		write(start);
+		for (file in conn) {
+			var minfs = addMiniSuffix(file);
+			var bytes = file == minfs ? sys.io.File.getBytes(file) : Minify.file(file, type);
+			writeBytes(bytes);
+			output.writeByte("\n".code);
 		}
-		write("</script>");
-		con_js.resize(0);
+		write(end);
+		conn.resize(0); // reset
 	}
 
-	function embed_css() {
-		var i = 0;
-		var max = con_css.length;
-		write('<style type="text/css">');
-		while (i < max) {
-			var file = con_css[i];
-			var fileMin = suffix_min(file);
-			var bytes = file == fileMin ? sys.io.File.getBytes(file) : HLine.minifyFile(file, CSS);
-			output.writeBytes(bytes, 0, bytes.length);
-			if (i + 1 < max)
-				write("\n");
-			++ i;
-		}
-		write("</style>");
-		con_css.resize(0);
+	inline function embedJS() embedFiles(connJS);
+
+	inline function embedCSS() embedFiles(connCSS);
+
+	function connFlush() {
+		embedCSS();
+		embedJS();
 	}
 
-	public static function print(xml: csss.xml.Xml, dir, out: haxe.io.Output) {
+	public static function print( xml : Xml, dir : String, out: haxe.io.Output ) {
 		var printer = new XMLPrint(dir, out);
 		printer.writeNode(xml);
-		// for non-stadard HTML file
-		if (printer.con_css.length > 0) printer.embed_css();
-		if (printer.con_js.length > 0) printer.embed_js();
+		printer.connFlush(); // for non-stadard HTML file
+	}
+}
+
+class Minify {
+	static function make( args : Array<String>, ?text : String ) : haxe.io.Bytes {
+		var proc = new sys.io.Process("java", args);
+		if (text != null) {
+			proc.stdin.writeString(text, UTF8);
+			proc.stdin.close();
+		}
+		var ret = proc.stdout.readAll();
+		proc.close();
+		return ret;
+	}
+	// text to bytes
+	static public function string( text : String, type : MiniType ) {
+		var args = HLine.jarArgs.copy();
+		args.push(type);
+		return make(args, text);
+	}
+	// file to bytes
+	static public function file( file : String, type : MiniType ) {
+		var args = HLine.jarArgs.copy();
+		args.push(type);
+		args.push(file);
+		return make(args, null);
+	}
+	// file to mini-file
+	static public function write( dst : String, src : String, type : MiniType ) {
+		var args = HLine.jarArgs.copy();
+		args.push(type);
+		args.push("-o");
+		args.push(dst);
+		args.push(src);
+		var proc = new sys.io.Process("java", args);
+		proc.close();
 	}
 }
 
 class HLine {
 
-	static public function run(text: String, dir: String, out: haxe.io.Output, jar:String): Void {
-		if (jar != null) {
+	public static var jarArgs: Array<String> = ["-jar", "", "--nomunge", "--type"];
+
+	static public function run( text : String, dir : String, out : haxe.io.Output, jar : String ) {
+		if (jar != null)
 			jarArgs[1] = jar;
-		}
-		var xml = csss.xml.Xml.parse(text);
-		try {
-			XMLPrint.print(xml, dir, out);
-		} catch(x: csss.xml.Xml) {
-			throw "Invalid " + x.nodeName + posString(x.nodePos, text);
-		}
+		var xml = Xml.parse(text);
+		try XMLPrint.print(xml, dir, out) catch( x : Xml ) throw "Invalid " + x.nodeName + posString(x.nodePos, text);
 	}
 
-	static public function posString(pmin: Int, text: String): String {
+	static public function posString( pmin : Int, text : String ) {
 		var line = 1;
 		var char = 0;
 		var i = 0;
@@ -251,49 +261,5 @@ class HLine {
 			}
 		}
 		return " at line: " + line + ", char: " + char;
-	}
-
-	// template
-	static var jarArgs: Array<String> = ["-jar", "", "--nomunge", "--type"];
-
-	static function minify(args: Array<String>, ?text: String):haxe.io.Bytes {
-		var proc = new sys.io.Process("java", args);
-		if (text != null) {
-			proc.stdin.writeString(text, UTF8);
-			proc.stdin.close();
-		}
-		//if (proc.exitCode() != 0) {  // no idea why it will always get stuck.
-			//var msg = proc.stderr.readAll().toString();
-			//proc.close();
-			//throw msg;
-		//}
-		var ret = proc.stdout.readAll();
-		proc.close();
-		return ret;
-	}
-	static public function minifyString(script: String, type: MiniType):haxe.io.Bytes {
-		var args = jarArgs.copy();
-		args.push(type);
-		return minify(args, script);
-	}
-	static public function minifyFile(file: String, type: MiniType):haxe.io.Bytes {
-		var args = jarArgs.copy();
-		args.push(type);
-		args.push(file);
-		return minify(args, null);
-	}
-	static public function minifyDisk(dst: String, src: String, type:MiniType): Void {
-		var args = jarArgs.copy();
-		args.push(type);
-		args.push("-o");
-		args.push(dst);
-		args.push(src);
-		var proc = new sys.io.Process("java", args);
-		//if (proc.exitCode() != 0) {
-			//var msg = proc.stderr.readAll().toString();
-			//proc.close();
-			//throw msg;
-		//}
-		proc.close();
 	}
 }
