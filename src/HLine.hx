@@ -30,9 +30,11 @@ class XMLPrint {
 			this.dir = dir + "/";
 	}
 
-	static inline var HI_SKIP = "hi-skip";
-	static inline var HI_MINI = "hi-mini";
-	static inline var HI_CUT =  "hi-cut";
+	static inline var HI_CUT    = "hi-cut";
+	static inline var HI_SKIP   = "hi-skip";
+	static inline var HI_MINI   = "hi-mini";
+	static inline var HI_INLINE = "hi-inline";
+	public static var doInline  = true;
 
 	static var regexp_comment_trim = ~/>\s+</g;
 	static var regexp_mini_tags = ~/^(?:script|style|link)$/;
@@ -65,22 +67,10 @@ class XMLPrint {
 			} else if (regexp_mini_tags.match(nodeName.toLowerCase())) {
 				var rpos = regexp_mini_tags.matchedPos();
 				switch(rpos.len) {
-				case 4 if (node.exists("href") && (node.get("rel") == "stylesheet" || node.get("type") == "text/css")):
+				case 4: // "link".length
 					var href = node.get("href");
-					var path = dir + href;
-					if ( exists(path) ) {
-						if ( node.exists(HI_MINI) ) {
-							node.remove(HI_MINI);
-							var s_min = addMiniSuffix(href);
-							if (s_min != href) {
-								Minify.write(dir + s_min, path, CSS);
-								setAttribute("href", s_min);
-							}
-						} else {
-							connCSS.push(path);
-							return;
-						}
-					}
+					if (href != null && href.endsWith("css") && handle(node, "href", href))
+						return;
 				case 5: // "style".length
 					assertIfNotText(node);
 					if (innerText(node).trim() == "")
@@ -94,18 +84,8 @@ class XMLPrint {
 						if (innerText(node).trim() == "")
 							return;
 						mini = JS;
-					} else if (exists(path)) {
-						if ( node.exists(HI_MINI) ) {
-							node.remove(HI_MINI);
-							var s_min = addMiniSuffix(src);
-							if (s_min != src) {
-								Minify.write(dir + s_min, path, JS);
-								setAttribute("src", s_min);
-							}
-						} else {
-							connJS.push(path);
-							return;
-						}
+					} else if (handle(node, "src", src)) {
+						return;
 					}
 				default:
 				}
@@ -150,7 +130,29 @@ class XMLPrint {
 
 	inline function hasChildren( node : Xml ) return node.children.length > 0;
 
-	inline function exists( file : String ) return !file.startsWith("http") && sys.FileSystem.exists(file) && !sys.FileSystem.isDirectory(file);
+	inline function exists( file : String ) return sys.FileSystem.exists(file) && !sys.FileSystem.isDirectory(file);
+
+	function handle( node : Xml, aname : String, avalue : String ) : Bool {
+		var path = this.dir + avalue;
+		if (avalue.startsWith("http") || !exists(path))
+			return false;
+		var type = aname == "href" ? CSS     : JS;
+		var conn = type  == CSS    ? connCSS : connJS;
+		if ( node.exists(HI_MINI) ) {
+			node.remove(HI_MINI);
+			var s_min = addMiniSuffix(avalue);
+			if (s_min != avalue) {
+				Minify.write(this.dir + s_min, path, type);
+				node.set(aname, s_min, 0, 0);
+			}
+		} else if (doInline || node.exists(HI_INLINE)) {
+			if (node.exists(HI_INLINE))
+				node.remove(HI_INLINE);
+			conn.push(path);
+			return true;
+		}
+		return false;
+	}
 
 	function assertIfNotText( node : Xml ) {
 		if (!(node.children.length == 1 && (node.children[0].nodeType == PCData || node.children[0].nodeType == CData)))

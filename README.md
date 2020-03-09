@@ -19,6 +19,14 @@ haxelib install html-inline
 command line:
 
 ```bash
+haxelib run html-inline [Options] <file.html>
+[Options]:
+  --only-spaces : Clear only whitespaces from HTML
+```
+
+sample:
+
+```bash
 # The default will be output to stdout
 haxelib run html-inline index.html
 
@@ -30,16 +38,19 @@ html file:
 
 ```html
 <!-- DEFAULT: all scripts and styles will be mifinied by yuicompressor and inline to HTML -->
-<link rel="stylesheet" href="style.css" />
+<link href="style.css" />
 
-<!-- ATTR: hi-skip: if set then no inline and no minify -->
-<link rel="stylesheet" href="style.css" hi-skip="" />
+<!-- hi-skip: Do nothing -->
+<link href="style.css" hi-skip />
 
-<!-- ATTR: hi-cut:  if set then this element will be removed from HTML -->
-<link rel="stylesheet" href="style.css" hi-cut="" />
+<!-- hi-cut: Removing elem from HTML -->
+<link href="style.css" hi-cut />
 
-<!-- ATTR: hi-mini: if set then minify(style.css) => style.min.css and update href -->
-<link rel="stylesheet" href="style.css" hi-mini="" />
+<!-- hi-mini: Minify(style.css) => (style.min.css) and update href -->
+<link href="style.css" hi-mini />
+
+<!-- hi-inline: Explicitly inline js/css when --only-spaces is specified -->
+<link href="style.css" hi-inline />
 ```
 
 example:

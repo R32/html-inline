@@ -9,7 +9,7 @@ class Main {
 	static function usage() {
 		 Sys.print(
 			  "Inline all script/css to HTML. ver: 0.3\n"
-			+ "  Usage: haxelib run html-inline <file>\n"
+			+ "  Usage: haxelib run html-inline [--only-spaces] <file>\n"
 		 );
 	}
 
@@ -42,6 +42,10 @@ class Main {
 		for (v in args) {
 			if (v == "-h" || v == "--help")
 				return usage();
+			if (v == "--only-spaces") {
+				HLine.XMLPrint.doInline = false;
+				continue;
+			}
 			file = v;
 		}
 		if (file == null)
