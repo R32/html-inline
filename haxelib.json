@@ -4,7 +4,7 @@
   "license": "MIT",
   "tags": ["html", "utility"],
   "description": "minify HTML and inline JS and CSS",
-  "releasenote": "Added --only-spaces",
-  "version": "0.3.0",
+  "releasenote": "BUG Fixed",
+  "version": "0.3.1",
   "contributors": ["r32"]
 }
