@@ -106,8 +106,10 @@ class XMLPrint {
 				connFlush(); // before parent tag closes.
 				write("</");
 				write(nodeName);
+				write(">");
+			} else {
+				write("/>");
 			}
-			write("/>");
 		case PCData if (textContent.length > 0):
 			if (mini == None) {
 				write(textContent);
