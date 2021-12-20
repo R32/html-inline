@@ -3,7 +3,7 @@ html-inline
 
 * minify HTML: It will remove all extra spaces and comments(IE conditions comments will be preserved).
 
-* minify scripts and css by [YUI Compressor](https://github.com/yui/yuicompressor)
+* minify scripts and css by [java YUI Compressor](https://github.com/yui/yuicompressor)
 
 
 ### Installation
@@ -49,7 +49,7 @@ html file:
 <!-- hi-mini: Minify(style.css) => (style.min.css) and update href -->
 <link href="style.css" hi-mini />
 
-<!-- hi-inline: Explicitly inline js/css when --only-spaces is specified -->
+<!-- hi-inline: Explicitly inline js/css even --only-spaces is specified -->
 <link href="style.css" hi-inline />
 ```
 
