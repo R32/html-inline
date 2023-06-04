@@ -4,4 +4,4 @@
 -D analyzer-optimize
 -main Main
 -lib csss
--neko run.n
+--interp

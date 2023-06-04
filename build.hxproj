@@ -2,7 +2,7 @@
 <project version="2">
   <!-- Output SWF options -->
   <output>
-    <movie outputType="CustomBuild" />
+    <movie outputType="Application" />
     <movie input="" />
     <movie path="build.hxml" />
     <movie fps="0" />
@@ -39,7 +39,7 @@
     <hidden path="obj" />
   </hiddenPaths>
   <!-- Executed before build -->
-  <preBuildCommand>cmd /c haxe --connect 6000 $(OutputFile)</preBuildCommand>
+  <preBuildCommand />
   <!-- Executed after build -->
   <postBuildCommand alwaysRun="False" />
   <!-- Other project options -->

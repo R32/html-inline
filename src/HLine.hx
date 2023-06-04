@@ -172,8 +172,6 @@ class XMLPrint {
 	}
 
 	function embedFiles( conn : Array<String> ) {
-		if (conn.length == 0)
-			return;
 		var type  = conn == connJS ? JS : CSS;
 		var start = conn == connJS ? '<script type="text/javascript">' : '<style type="text/css">';
 		var end   = conn == connJS ? "</script>"                       : "</style>";
@@ -188,9 +186,9 @@ class XMLPrint {
 		conn.resize(0); // reset
 	}
 
-	inline function embedJS() embedFiles(connJS);
+	inline function embedJS() if (connJS.length > 0) embedFiles(connJS);
 
-	inline function embedCSS() embedFiles(connCSS);
+	inline function embedCSS() if (connCSS.length > 0) embedFiles(connCSS);
 
 	function connFlush() {
 		embedCSS();
@@ -211,7 +209,16 @@ class Minify {
 			proc.stdin.writeString(text, UTF8);
 			proc.stdin.close();
 		}
-		var ret = proc.stdout.readAll();
+		var ret = if (proc.exitCode() == 0) {
+			proc.stdout.readAll();
+		} else { // error if es6
+			Sys.stderr().writeString("Skipped yuicompressor error\n");
+			if (text != null) {
+				haxe.io.Bytes.ofString(text);
+			} else {
+				sys.io.File.getBytes(args.pop());
+			}
+		}
 		proc.close();
 		return ret;
 	}
