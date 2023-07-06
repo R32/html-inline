@@ -51,7 +51,10 @@ class XMLPrint {
 		var i = 0;
 		var a = node.attributeMap;
 		while (i < a.length) {
-			write(' ${a[i]}="${a[i + 1]}"');
+			if (a[i + 1] != "")
+				write(' ${a[i]}="${a[i + 1]}"');
+			else
+				write(' ${a[i]}');
 			i += 2;
 		}
 		// children
