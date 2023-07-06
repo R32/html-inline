@@ -1,7 +1,3 @@
--dce full
 -cp src
--D old-error-format
--D analyzer-optimize
--main Main
 -lib csss
---interp
+--run Main

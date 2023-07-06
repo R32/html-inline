@@ -8,8 +8,12 @@ import sys.FileSystem;
 class Main {
 	static function usage() {
 		 Sys.print(
-			  "Inline all script/css to HTML. ver: 0.3\n"
-			+ "  Usage: haxelib run html-inline [--only-spaces] <file>\n"
+			  "Inline all script/css to HTML. version : 0.5.0\n"
+			+ "  Usage: haxelib run html-inline [Options] <file>\n"
+			+ " Options:\n"
+			+ "   -h, --help          : help informations\n"
+			+ "   -s, --only-spaces   : removes extra spaces only\n"
+			+ "   -k, --hook <script> : an easy way to modify the parsed XML\n"
 		 );
 	}
 
@@ -29,7 +33,7 @@ class Main {
 	}
 
 	static function main() {
-		var args = Sys.args().copy();
+		var args = Sys.args();
 		var libpath = null;
 		#if (neko || eval)
 		if (Sys.getEnv("HAXELIB_RUN") == "1") {
@@ -39,11 +43,17 @@ class Main {
 		#end
 			libpath = getLibPath();   // end with "/"
 		var file = null;
-		for (v in args) {
+		var i = 0;
+		while (i < args.length) {
+			var v = args[i++];
 			if (v == "-h" || v == "--help")
 				return usage();
-			if (v == "--only-spaces") {
+			if (v == "-s" || v == "--only-spaces") {
 				HLine.XMLPrint.doInline = false;
+				continue;
+			}
+			if (v == "-k" || v == "--hook") {
+				i++; // Simply skip and let src/Macros to do it
 				continue;
 			}
 			file = v;

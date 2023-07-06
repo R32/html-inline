@@ -1,7 +1,7 @@
 html-inline
 -------
 
-* minify HTML: It will remove all extra spaces and comments(IE conditions comments will be preserved).
+* minify HTML: It will remove all extra spaces and comments.
 
 * minify scripts and css by [java YUI Compressor](https://github.com/yui/yuicompressor)
 
@@ -16,12 +16,13 @@ haxelib install html-inline
 
 ### Usage
 
-command line:
-
 ```bash
-haxelib run html-inline [Options] <file.html>
-[Options]:
-  --only-spaces : Clear only whitespaces from HTML
+Inline all script/css to HTML. version : 0.5.0
+  Usage: haxelib run html-inline [Options] <file>
+ Options:
+   -h, --help          : help informations
+   -s, --only-spaces   : removes extra spaces only
+   -k, --hook <script> : an easy way to modify the parsed XML
 ```
 
 sample:
@@ -42,9 +43,6 @@ html file:
 
 <!-- hi-skip: Do nothing -->
 <link href="style.css" hi-skip />
-
-<!-- hi-cut: Removing elem from HTML -->
-<link href="style.css" hi-cut />
 
 <!-- hi-mini: Minify(style.css) => (style.min.css) and update href -->
 <link href="style.css" hi-mini />
@@ -68,9 +66,32 @@ example:
 </html>
 ```
 
-output:.
+`haxelib run html-inline example.html` :
 
 ```html
-<html><head><style type="text/css">div{padding:0;}
-.base{margin:0;}</style><title>test</title></head><body><script type="text/javascript">console.log("hello world!");</script></body></html>
+<html><head><style rel="stylesheet" type="text/css">button{color:blue}</style><style rel="stylesheet" type="text/css">html,body{margin:0;padding:0}</style><title>test</title></head><body><script type="text/javascript">console.log("hello world!");</script></body></html>
+```
+
+new `-h, --hook <script>`, Hooked script uses normal haxe syntax(only works in eval/interp platform).
+The script will be automatically parsed into a `function` by the macro
+
+```bash
+haxelib run html-inline index.html --hook modify.hx
+```
+
+modify.hx
+
+```haxe
+doc.one("h2").setAttribute("hello", "world");
+
+// add "nonce" for all script tag
+var scripts = doc.all("script");
+for (sn in scripts) {
+	sn.setAttribute("nonce", "randskey");
+}
+
+// add <base>
+var base = Xml.createElement("base", 0); // csss.xml.Xml
+base.setAttribute("target", "_self");
+doc.one("head").insertChild(base, 0);
 ```

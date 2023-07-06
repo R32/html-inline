@@ -1,8 +1,0 @@
--dce full
--cp src
--D old-error-format
--D analyzer-optimize
--main Main
--lib csss
--D HAXE_OUTPUT_FILE=html-inline
--cpp bin/cpp
