@@ -58,10 +58,66 @@ class XMLPrint {
 			write(">");
 			for (child in node)
 				writeNode(child);
-			write("</"); write(node.nodeName); write(">");
+			write("</" + node.nodeName + ">");
 		} else {
 			write("/>");
 		}
+	}
+
+	function detectCombineNext( node : Xml ) {
+		var sublings = node.parent.children;
+		var i = 0;
+		var len = sublings.length;
+		var next = node;
+		while (i < len) {
+			var cur = sublings[i++];
+			if (cur == node && i < len) {
+				next = sublings[i];
+				break;
+			}
+		}
+		if (next == node || next.nodeType != Element || next.exists(HI_SKIP))
+			return;
+		var state = processInlineTags(next); // recursion
+		if (state != PS_MAYCHANGED)
+			return;
+		next.setAttribute(HI_SKIP, "");
+		if (next.exists("src") || node.nodeName.toLowerCase() != next.nodeName.toLowerCase())
+			return;
+		// TODO: attributes equals
+		// moving and discard
+		for (child in next) {
+			var sep = Xml.createPCData("\n", child.nodePos);
+			node.addChild(sep);
+			node.addChild(child);
+		}
+		next.setAttribute(HI_CUT, "");
+	}
+
+	static inline var PS_ORIGIN = 0;
+	static inline var PS_PROCESSED = -1;
+	static inline var PS_MAYCHANGED = 1;
+	function processInlineTags( node : Xml ) {
+		if (!re_inline_tags.match(node.nodeName.toLowerCase()))
+			return PS_ORIGIN;
+		var ret = re_inline_tags.matchedPos();
+		switch (ret.len) {
+		case 3: // custom <@hk>
+			var type = NodeType.fromNode(node.parent);
+			var path = node.get("res");
+			var mini = addMiniSuffix(path);
+			var bina = path == mini ? sys.io.File.getBytes(path) : Minify.file(path, type);
+			writeBytes(bina);
+			return PS_PROCESSED;
+		case 4: // "link".length
+			handleResource(node, "href"); // changes link to style
+		case 5: // "style".length
+			handleResource(node, "");
+		case 6: // "script".length
+			handleResource(node, "src");
+		default:
+		}
+		return PS_MAYCHANGED;
 	}
 
 	public function writeNode( node : Xml ) {
@@ -88,24 +144,9 @@ class XMLPrint {
 				return;
 			if (node.exists(HI_SKIP)) {
 				node.remove(HI_SKIP);
-			} else if (re_inline_tags.match(nodeName.toLowerCase())) {
-				var rpos = re_inline_tags.matchedPos();
-				switch(rpos.len) {
-				case 3: // custom <@hk>
-					var type = NodeType.fromNode(node.parent);
-					var path = node.get("res");
-					var mini = addMiniSuffix(path);
-					var bina = path == mini ? sys.io.File.getBytes(path) : Minify.file(path, type);
-					writeBytes(bina);
+			} else {
+				if (processInlineTags(node) == PS_PROCESSED)
 					return;
-				case 4: // "link".length
-					handleResource(node, "href"); // changes link to style
-				case 5: // "style".length
-					handleResource(node, "");
-				case 6: // "script".length
-					handleResource(node, "src");
-				default:
-				}
 			}
 			outputElement(node);
 		case PCData if (textContent.length > 0):
@@ -139,11 +180,13 @@ class XMLPrint {
 			var text = innerText(node).trim();
 			if (text != "")
 				innerText(node) = Minify.string(text, NodeType.fromNode(node)).toString();
+			//
+			detectCombineNext(node);
 			return;
 		}
 		// <link href>, <script src>
 		var type = aname == "href" ? CSS : (aname == "src" ? JS : Normal);
-		if ((type == CSS && !avalue.endsWith("css")) || avalue.startsWith("http"))
+		if ((type == CSS && !avalue.endsWith("css")) || avalue.startsWith("http") || node.exists("media"))
 			return;
 		var path = if (avalue.fastCodeAt(0) == "/".code || avalue.fastCodeAt(1) == ":".code) {
 			avalue;
@@ -157,7 +200,7 @@ class XMLPrint {
 			node.remove(HI_MINI);
 			var s_min = addMiniSuffix(avalue);
 			if (s_min != avalue) {
-				Minify.write(this.dir + s_min, path, type);
+				Minify.makeMiniFile(this.dir + s_min, path, type);
 				node.setAttribute(aname, s_min);
 			}
 			return;
@@ -179,6 +222,8 @@ class XMLPrint {
 			hk.setAttribute("res", path);
 			node.children = [hk];
 			hk.parent = node;
+			//
+			detectCombineNext(node);
 		}
 	}
 
@@ -231,8 +276,8 @@ class Minify {
 		args.push(file);
 		return run(args, null);
 	}
-	// file to mini-file
-	static public function write( dst : String, src : String, type : NodeType ) {
+	// mini-file
+	static public function makeMiniFile( dst : String, src : String, type : NodeType ) {
 		var args = HLine.jarArgs.copy();
 		args.push(type);
 		args.push("-o");
