@@ -250,14 +250,23 @@ class Minify {
 			proc.stdin.writeString(text, UTF8);
 			proc.stdin.close();
 		}
-		var ret = if (proc.exitCode() == 0) {
-			proc.stdout.readAll();
+		// moved .readAll() before proc.exitCode() because java::stdout may get stuck when file size > (4K???)
+		var ret = proc.stdout.readAll(8192);
+		if (proc.exitCode() == 0) {
+			var ext = proc.stdout.readAll(4096);
+			if (ext.length > 0) {
+				// I never run to here
+				var sum = haxe.io.Bytes.alloc(ret.length + ext.length);
+				sum.blit(0, ret, 0, ret.length);
+				sum.blit(ret.length, ext, 0, ext.length);
+				ret = sum;
+			}
 		} else { // error if es6
 			Sys.stderr().writeString("Skipped yuicompressor error\n");
 			if (text != null) {
-				haxe.io.Bytes.ofString(text);
+				ret = haxe.io.Bytes.ofString(text);
 			} else {
-				sys.io.File.getBytes(args.pop());
+				ret = sys.io.File.getBytes(args.pop());
 			}
 		}
 		proc.close();
