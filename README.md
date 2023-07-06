@@ -22,6 +22,7 @@ Inline all script/css to HTML. version : 0.5.0
  Options:
    -h, --help          : help informations
    -s, --only-spaces   : removes extra spaces only
+   -m, --no-merge      : don't merge style/script tags
    -k, --hook <script> : an easy way to modify the parsed XML
 ```
 

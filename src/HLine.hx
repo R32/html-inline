@@ -38,12 +38,13 @@ class XMLPrint {
 	static inline var HI_MINI   = "hi-mini";
 	static inline var HI_INLINE = "hi-inline";
 
-	public static var doInline  = true;        // if there is no "-s, --only-spaces"
+	public static var doInline  = true;        // if no "-s, --only-spaces"
+	public static var doMerge   = true;        // if no "-s, --no-merge"
 
 	static var re_comment_trim = ~/>\s+</g;
 	static var re_inline_tags = ~/^(?:script|style|link|@hk)$/;
 
-	function outputElement( node : Xml ) {
+	function writeElement( node : Xml ) {
 		// name
 		write("<" + node.nodeName);
 		// attributes
@@ -65,6 +66,8 @@ class XMLPrint {
 	}
 
 	function detectCombineNext( node : Xml ) {
+		if (!doMerge)
+			return;
 		var sublings = node.parent.children;
 		var i = 0;
 		var len = sublings.length;
@@ -81,10 +84,17 @@ class XMLPrint {
 		var state = processInlineTags(next); // recursion
 		if (state != PS_MAYCHANGED)
 			return;
-		next.setAttribute(HI_SKIP, "");
-		if (next.exists("src") || node.nodeName.toLowerCase() != next.nodeName.toLowerCase())
+		next.setAttribute(HI_SKIP, ""); // this will push 2 values to next.attributeMap by csss.xml.Xml
+		if (next.exists("src") || node.nodeName.toLowerCase() != next.nodeName.toLowerCase()
+			|| node.attributeMap.length != (next.attributeMap.length - 2)
+		) {
 			return;
-		// TODO: attributes equals
+		}
+		// attributes equal
+		for (k in node.attributes()) {
+			if (node.get(k) != next.get(k))
+				return;
+		}
 		// moving and discard
 		for (child in next) {
 			var sep = Xml.createPCData("\n", child.nodePos);
@@ -148,8 +158,8 @@ class XMLPrint {
 				if (processInlineTags(node) == PS_PROCESSED)
 					return;
 			}
-			outputElement(node);
-		case PCData if (textContent.length > 0):
+			writeElement(node);
+		case PCData:
 			write(textContent);
 		case ProcessingInstruction:
 			write("<?" + textContent + "?>");

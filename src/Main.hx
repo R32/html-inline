@@ -13,6 +13,7 @@ class Main {
 			+ " Options:\n"
 			+ "   -h, --help          : help informations\n"
 			+ "   -s, --only-spaces   : removes extra spaces only\n"
+			+ "   -m, --no-merge      : don't merge style/script tags\n"
 			+ "   -k, --hook <script> : an easy way to modify the parsed XML\n"
 		 );
 	}
@@ -50,6 +51,10 @@ class Main {
 				return usage();
 			if (v == "-s" || v == "--only-spaces") {
 				HLine.XMLPrint.doInline = false;
+				continue;
+			}
+			if (v == "-m" || v == "--no-merge") {
+				HLine.XMLPrint.doMerge = false;
 				continue;
 			}
 			if (v == "-k" || v == "--hook") {
