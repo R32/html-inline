@@ -18,7 +18,7 @@ class Main {
 	}
 
 	static function getLibPath():Null<String> {
-		var proc = new sys.io.Process("haxelib", ["path", "html-inline"]);
+		var proc = new sys.io.Process("haxelib", ["libpath", "html-inline"]);
 		if (proc.exitCode() != 0) {
 			var msg = proc.stderr.readAll().toString();
 			proc.close();
