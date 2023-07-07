@@ -68,23 +68,27 @@ class XMLPrint {
 		}
 	}
 
+	var volatileIndex = 0;
 	function detectCombineNext( node : Xml ) {
 		if (!doMerge)
 			return;
+		// index lookup
 		var sublings = node.parent.children;
-		var i = 0;
-		var len = sublings.length;
+		var i = this.volatileIndex;
 		var next = node;
-		while (i < len) {
-			var cur = sublings[i++];
-			if (cur == node && i < len) {
-				next = sublings[i];
-				break;
-			}
+		if (!(i < sublings.length && node == sublings[i])) {
+			i = sublings.length - 1;
+			while (i >= 0 && node != sublings[i])
+				i--;
 		}
+		i += 1; // index of next node
+		if (i > 0 && i < sublings.length)
+			next = sublings[i];
 		if (next == node || next.nodeType != Element || next.exists(HI_SKIP))
 			return;
-		var state = processInlineTags(next); // recursion
+		this.volatileIndex = i;
+		// recursion process
+		var state = processInlineTags(next);
 		if (state != PS_MAYCHANGED)
 			return;
 		next.setAttribute(HI_SKIP, ""); // this will push 2 values to next.attributeMap by csss.xml.Xml
